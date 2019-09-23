@@ -18,13 +18,18 @@ exports.parseServer = function(str,cb){
        //console.log('发现服务地址：'+ serverUrl);
        http.get(serverUrl,{timeout:1000},(rs)=>{
            parseXML(rs,(xml)=>{
-               var device = xml.root.device;
+               var device = xml.root.device,
+                   serviceList = device.sericeList && serviceList.service;
                console.log('服务设备：',device.friendlyName);
-               console.log('提供服务：'+ device.deviceType);
+               if(serviceList){
+                   console.log('提供服务：');
+                   sericeList.map(function(service){
+                      console.log(service.serviceType);
+                   })
+               }
                //播放国歌
-               msg.friendlyName = device.friendlyName;
-               msg.contrlUrl = path.parse(serverUrl).dir;
-               msg.manufacturer = device.manufacturer;
+               msg.device = device;
+               msg.baseUrl = baseUrl(serverUrl);
                cb(msg);
               // if(device.manufacturer == 'Xiaomi')(cb(msg))
            });
@@ -39,6 +44,9 @@ exports.parseServer = function(str,cb){
 exports.parseContrl = (str,cb)=>{
     var msg = strToMsg(str);
     cb(msg);
+}
+exports.getServers=()=>{
+    return serverMap;
 }
 exports.parseReponse = parseXML;
 function strToMsg(str){
@@ -90,4 +98,12 @@ function parseXML(res,cb){
            console.error(e.message);
         }
     });
+}
+function baseUrl(url){
+   var arr = url.split('//'),
+       protocol = arr[0],
+       arr2 = arr[1].split('/'),
+       host = arr2[0];
+
+    return [protocol,host].join('//');
 }

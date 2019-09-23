@@ -1,55 +1,67 @@
-const dgram = require('dgram'),
-      port = 1900,
-      {parseServer,parseReponse,parseContrl} = require('./dlanParse'),
-      ip = '239.255.255.250',
-      http = require('http'),
-      fs = require('fs'),
-      server = http.createServer((req, res) => {
-        let mp3 = './static/guoge.mp3';
-        let stat = fs.statSync(mp3);
-        res.writeHead(200,{'Content-Type':'audio/mpeg',    'Content-Length':stat.size
-        });
-        fs.createReadStream(mp3).pipe(res);
-        //res.end();
+const {start,stop,getDevices} = require('./search'),
+      mp3server = require('./mp3Server'),
+      readline = require('readline'),
+      rl = readline.createInterface({
+        // 调用std接口
+        input:process.stdin,
+        output:process.stdout
       }),
-      {getIP,getXML,getStop}=require('./util'),
-      socket = dgram.createSocket('udp4');
+      http = require('http'),
+      {getXML}=require('./util');
 
-let mp3Url = null;
-  
-server.listen('1234',()=>{
-    var info = server.address();
-    mp3Url = getIP() + ':' + info.port;
-    console.log('MP3服务器启动:'+ mp3Url);
-});
-socket.bind(port,()=>{
-    console.log('解析服务已经启动！');
-    socket.addMembership(ip);
+
+mp3server.start();
+start();
+showMenu();
+rl.on('line',(line)=>{
+    var cmd,
+        cmdTofn = {
+            'play':playTest,
+            'deviceList':deviceList,
+            'menu':showMenu
+        },
+        cmdList = Object.keys(cmdTofn),
+        i =0,
+        l = cmdList.length;
+    
+    for(;i<l;i++){
+        cmd = cmdList[i];
+        if(line.indexOf(cmd) == 0){
+            cmdTofn[cmd](line);
+            return 
+        }
+    }
+    console.log('错误的命令！');
 })
-socket.on('error',(err)=>{
-    console.log('err:',err.message)
-    socket.close();
-})
-socket.on('message',(msg,rinfo)=>{
-    var strmsg = msg.toString();
-    if(strmsg.indexOf('NOTIFY') == 0){
-        parseServer(strmsg,(node)=>{
-            if(node.manufacturer == 'Xiaomi'){
-                console.log('开始放国歌：');
-                play(node.contrlUrl);
-            }
-        });
-    } else if(strmsg.indexOf('M-SEARCH') == 0){
-        parseContrl(strmsg,(node)=>{
-           console.log(['来自',rinfo.address,'的',node['user-agent'],'搜索',node.st].join(''));
+function playTest(){
+    console.log('开始播放：');
+}
+function showMenu(){
+    var cmdList = [
+        'play  播放mp3',
+        'deviceList 列出设备信息'
+    ].join('\r\n');
+    console.log(cmdList);
+}
+function deviceList(){
+    var deviceList = getDevices(),
+        node,
+        keys = Object.keys(deviceList),
+        l = keys.length,
+        i = 0,
+        servicelist,
+        node;
+    
+    for(;i<l;i++){
+        node = deviceList[keys[i]];
+        console.log(node.device.friendlyName);
+        servicelist = device.servicelist.service;
+        servicelist.map((service)=>{
+            console.log(service.serviceType);
         })
-    }else {
-        console.log('----------------------------');
-        console.log(strmsg);
-        console.log(['port:',rinfo.port,',ip:',rinfo.address].join(''));   
     }
     
-})
+}
 function play(contrlUrl){
     var action = "SetAVTransportURI",
         //xml = getStop('http://'+mp3Url,action),
