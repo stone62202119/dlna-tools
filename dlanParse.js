@@ -3,17 +3,19 @@ const serverMap = {},
       path =require('path'),
       xmlParser = require('fast-xml-parser'),
       ALIVE = 'ssdp:alive';
+      
 exports.parseServer = function(str,cb){
    var msg = strToMsg(str),
        key,
        serverUrl = msg.location;
    //console.log(msg);
    key = msg.uuid = msg.usn.split('::')[0].split(':')[1];
-   if(serverUrl == null){
-       console.log(msg);
-       return;
-   }
+   
    if(msg.nts == ALIVE && serverMap[key] == null){
+       if(serverUrl == null){
+         console.log(msg);
+         return;
+       }
        serverMap[key] = msg;
        //console.log('发现服务地址：'+ serverUrl);
        http.get(serverUrl,{timeout:1000},(rs)=>{

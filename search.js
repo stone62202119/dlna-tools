@@ -4,6 +4,7 @@ const dgram = require('dgram'),
       eventPort = 7900,
       {parseServer,getServers} = require('./dlanParse'),
       http = require('http'),
+      fs = require('fs'),
       ip = '239.255.255.250',
       searchData = [
           'M-SEARCH * HTTP/1.1',  
@@ -16,6 +17,7 @@ const dgram = require('dgram'),
 
 let socket;
 exports.start = ()=>{
+    load('./device.text');
     socket = dgram.createSocket('udp4');
     socket.bind(ssdpPort,()=>{
         console.log('解析服务已经启动！');
@@ -61,6 +63,16 @@ function eventTest(){
         if(msg.indexOf('M-SEARCH') == 0) return;
         console.log(msg);
         console.log('ip:' + rinfo.address);
+    })
+}
+function load(path){
+    fs.readFile(path,'utf-8',(err,data)=>{
+        if (err) throw err;
+        var deviceLists = JSON.parse(data),
+            uuid;
+        for(uuid in deviceLists){
+            serverMap[uuid] = deviceLists[uuid];
+        }
     })
 }
 if(__filename == process.argv[1])exports.start();

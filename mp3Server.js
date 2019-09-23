@@ -5,8 +5,9 @@ const http = require('http'),
       {getIP}=require('./util');
 
 let server;
-exports.start = ()=>{
-    let mp3Url = null;
+let mp3Url;
+exports.start = (cb)=>{
+    cb = cb || function(){};
     server = http.createServer((req, res) => {
         let mp3 = './static/guoge.mp3';
         let stat = fs.statSync(mp3);
@@ -19,8 +20,12 @@ exports.start = ()=>{
         var info = server.address();
         mp3Url = getIP() + ':' + info.port;
         console.log('MP3服务器启动:'+ mp3Url);
+        cb(mp3Url);
     });
 }
 exports.stop = ()=>{
     if(server)server.stop();
+}
+exports.getUrl = () =>{
+    return mp3Url;
 }

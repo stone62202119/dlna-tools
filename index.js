@@ -1,6 +1,7 @@
 const {start,stop,getDevices} = require('./search'),
       mp3server = require('./mp3Server'),
       readline = require('readline'),
+      fs = require('fs'),
       rl = readline.createInterface({
         // 调用std接口
         input:process.stdin,
@@ -18,7 +19,8 @@ rl.on('line',(line)=>{
         cmdTofn = {
             'play':playTest,
             'deviceList':deviceList,
-            'menu':showMenu
+            'menu':showMenu,
+            'save':saveDevice
         },
         cmdList = Object.keys(cmdTofn),
         i =0,
@@ -33,8 +35,37 @@ rl.on('line',(line)=>{
     }
     console.log('错误的命令！');
 })
-function playTest(){
-    console.log('开始播放：');
+function playTest(line){
+    var number = + line.split(' ')[1],
+        deviceList = getDevices(),
+        keys = Object.keys(deviceList),
+        controlURL,
+        node;
+
+    if(number != null && number < keys.length){
+        node = deviceList[keys[number]];
+        controlURL = getCtrolUrl(node);
+        if(controlURL){
+            console.log('发送播放请求：');
+            play([node.baseUrl,controlURL].join(''));
+        }else{
+            console.log('该节点不支持播放');
+        }
+    }
+    
+    function getCtrolUrl(node){
+       var servicelist = node.device.serviceList.service,
+           i = 0,
+           l = servicelist.length,
+           service;
+
+        for(;i<l;i++){
+            service = servicelist[i];
+            if(service.serviceType.indexOf('AVTransport') != -1){
+                return service.controlURL;
+            }
+        }  
+    }
 }
 function showMenu(){
     var cmdList = [
@@ -54,22 +85,34 @@ function deviceList(){
     
     for(;i<l;i++){
         node = deviceList[keys[i]];
-        console.log(node.device.friendlyName);
-        servicelist = device.servicelist.service;
+        console.log('number:' + i +' ' + node.device.friendlyName);
+        servicelist = node.device.serviceList.service;
         servicelist.map((service)=>{
             console.log(service.serviceType);
         })
     }
-    
+    if(l == 0){
+        console.log('没有获取设备信息');
+    }
+}
+function saveDevice(){
+    var devices = getDevices();
+    fs.writeFile('device.text',JSON.stringify(devices),(err)=>{
+        if(err){
+            console.log(err.message);
+        }else{
+            console.log('写入成功！');
+        }
+    });
 }
 function play(contrlUrl){
     var action = "SetAVTransportURI",
+        mp3Url = mp3server.getUrl(),
         //xml = getStop('http://'+mp3Url,action),
         pic = 'http://pic2.nipic.com/20090506/2256386_141149004_2.jpg',
         xml = getXML('http://'+mp3Url,action),
         req;   
 
-   contrlUrl = contrlUrl += '/_urn:schemas-upnp-org:service:AVTransport_control';
    req = http.request(contrlUrl,{
        method:'POST',
        timeout:30000,
@@ -79,10 +122,34 @@ function play(contrlUrl){
         'Content-Type': 'text/xml;charset="utf-8"',
         'Content-Length': Buffer.byteLength(xml)
        }
-   },(rs)=>{
-       parseReponse(rs,(json)=>{
-         // console.log(xml);
-       })
+   },(res)=>{
+    const { statusCode } = res;
+    const contentType = res.headers['content-type'];
+
+    let error;
+    if (statusCode == 200){
+        console.log('start play!');
+    }else if (statusCode !== 200) {
+        error = new Error('Request Failed.\n' +
+                        `Status Code: ${statusCode}`);
+    }else if (!/^text\/xml/.test(contentType)) {
+        error = new Error('Invalid content-type.\n' +
+                        `Expected application/json but received ${contentType}`);
+    }
+    if (error) {
+        console.error(error.message);
+        res.setEncoding('utf8');
+        let rawData = '';
+        res.on('data', (chunk) => { rawData += chunk; });
+        res.on('end', () => {
+            try {
+            console.log(rawData);
+            } catch (e) {
+            console.error(e.message);
+            }
+        });
+    }
+        
    });
    req.on('error',function(e){
     console.error(`problem with request: ${e.message}`);

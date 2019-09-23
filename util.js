@@ -12,6 +12,7 @@ exports.getXML = function(CurrentURI,action){
         <u:${action} xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
           <InstanceID>0</InstanceID>
           <CurrentURI>${CurrentURI}</CurrentURI>
+          <CurrentURIMetaData></CurrentURIMetaData>
         </u:${action}>
       </s:Body>
     </s:Envelope>`;
