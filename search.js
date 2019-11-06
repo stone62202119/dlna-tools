@@ -11,7 +11,7 @@ const dgram = require('dgram'),
           'Host: 239.255.255.250:1900',  
           'Man: "ssdp:discover"',  
           'Mx: 600',  
-          'ST: upnp:rootdevice',
+          'ST: urn:schemas-upnp-org:service:AVTransport:1',
           '\r\n'
       ];
 
@@ -19,18 +19,15 @@ let socket;
 exports.start = ()=>{
     load('./device.text');
     socket = dgram.createSocket('udp4');
-    socket.bind(ssdpPort,()=>{
-        console.log('解析服务已经启动！');
-        socket.addMembership(ip);
-    });
+    
     socket.on('message',(buff,rinfo)=>{
         var msg = buff.toString();
-        if(msg.indexOf('M-SEARCH') == 0) return;
+        if(msg.indexOf('M-SEARCH') == 0) return; //不回应search信息
         parseServer(msg,(info)=>{
             serverMap[info.uuid] = info;
             console.log('服务节点名：',info.device.friendlyName);
         })
-        console.log('ip:' + rinfo.address);
+        console.log('ip:' + rinfo.address + ',port:'+rinfo.port);
         /*else if(strmsg.indexOf('M-SEARCH') == 0){
             parseContrl(strmsg,(node)=>{
                console.log(['来自',rinfo.address,'的',node['user-agent'],'搜索',node.st].join(''));
@@ -41,11 +38,26 @@ exports.start = ()=>{
             console.log(['port:',rinfo.port,',ip:',rinfo.address].join(''));   
         }*/
     })
+    
     socket.on('error',(err)=>{
         console.log('err:',err.message)
-        socket.close();
-    })
-    socket.send(searchData.join('\r\n'),ssdpPort,ip);
+        if(err.code != 'EADDRINUSE')socket.close();
+    });
+    socket.on('listening', () => {
+        const address = socket.address();
+        console.log(`服务器监听 ${address.address}:${address.port}`);
+    });
+    
+    /*socket.bind(ssdpPort,()=>{
+        console.log('绑定1900成功！');
+        socket.addMembership(ip);
+    })*/
+    socket.send(searchData.join('\r\n'),ssdpPort,ip,(err)=>{
+        if(err){
+            console.log('send error');
+            return;
+        }
+    });
 }
 exports.stop = ()=>{
     if(socket)socket.stop();
