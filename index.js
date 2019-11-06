@@ -71,8 +71,8 @@ function playTest(line){
 }
 function showMenu(){
     var cmdList = [
-        'play  播放mp3',
-        'deviceList 列出设备信息'
+        'play 1 //给第一个设备播放mp3',
+        'list 列出设备信息'
     ].join('\r\n');
     console.log(cmdList);
 }
