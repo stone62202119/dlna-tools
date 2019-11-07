@@ -14,17 +14,21 @@ exports.getCurrentUrlXml = (CurrentURI,action)=>{
      'CurrentURI':CurrentURI,
      CurrentURIMetaData:''
    }
-   return this.getXml(action,params);
+   return getXml(action,params);
 }
-exports.getXml = function getXml(action,params){
+exports.getXml = getXml;
+function getXml(action,params){
     var xml = `<?xml version="1.0" encoding="utf-8"?>
     <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
       <s:Body>
-        <u:${action} xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
-          <InstanceID>0</InstanceID>
-          <CurrentURI>${CurrentURI}</CurrentURI>
-          <CurrentURIMetaData></CurrentURIMetaData>
-        </u:${action}>
+        <u:${action} xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">`,
+        key,value;
+
+    for(key in params){
+      xml += `<${key}>${params[key]}</${key}>`;
+    }
+
+    xml += `</u:${action}>
       </s:Body>
     </s:Envelope>`;
     return xml;
@@ -74,8 +78,14 @@ function strToMsg(str){
         map = {},
         i = 1,
         key,value,index,
+        typeStr = line[0],
         l = line.length - 2;
-    
+
+    if(typeStr.indexOf('HTTP/1.1') == 0){
+       map.type = 'st';
+    }else{
+       map.type = 'nt';
+    }
     for (;i<l;i++){
        row = line[i];
        index = row.indexOf(':');
@@ -90,5 +100,5 @@ exports.getPlayXML = function(action){
     InstanceID:0,
     Speed:1
   }
-  return this.getXml(action,params);
+  return getXml(action,params);
 }

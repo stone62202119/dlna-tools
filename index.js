@@ -8,7 +8,7 @@ const {start,stop,getDevices} = require('./search'),
         output:process.stdout
       }),
       http = require('http'),
-      {getXML,getPlayXML}=require('./util');
+      {getCurrentUrlXml,getPlayXML}=require('./util');
 
 
 mp3server.start();
@@ -113,7 +113,7 @@ function play(contrlUrl){
         mp3Url = mp3server.getUrl(),
         //xml = getStop('http://'+mp3Url,action),
         pic = 'http://pic2.nipic.com/20090506/2256386_141149004_2.jpg',
-        xml = getXML('http://'+mp3Url,action);
+        xml = getCurrentUrlXml('http://'+mp3Url,action);
         
         
     sendXML(contrlUrl,action,xml);//SetAVTransportURI

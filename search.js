@@ -22,6 +22,7 @@ exports.start = ()=>{
     
     socket.on('message',(buff,rinfo)=>{
         var msg = buff.toString();
+        //console.log(msg);
         if(msg.indexOf('M-SEARCH') == 0) return; //不回应search信息
         parseServer(msg,(info)=>{
             serverMap[info.uuid] = info;
@@ -78,7 +79,7 @@ function eventTest(){
     })
 }
 function load(path){
-    fs.readFile(path,'utf-8',(err,data)=>{
+    if(fs.existsSync(path))fs.readFile(path,'utf-8',(err,data)=>{
         if (err) throw err;
         var deviceLists = JSON.parse(data),
             uuid;
@@ -90,13 +91,14 @@ function load(path){
 exports.parseServer = parseServer;
 function parseServer(str,cb){
     var msg = util.strToMsg(str),
-        key,
+        serverflag = 'urn:schemas-upnp-org:service:AVTransport:1',
         ALIVE = 'ssdp:alive',
+        key,
         serverUrl = msg.location;
     //console.log(msg);
     key = msg.uuid = msg.usn.split('::')[0].split(':')[1];
     
-    if(msg.nts == ALIVE && serverMap[key] == null){
+    if((msg.st == serverflag || msg.nt == serverflag) && serverMap[key] == null){
         if(serverUrl == null){
           console.log(msg);
           return;
@@ -118,13 +120,12 @@ function parseServer(str,cb){
                 msg.device = device;
                 msg.baseUrl = util.baseUrl(serverUrl);
                 cb(msg);
-               // if(device.manufacturer == 'Xiaomi')(cb(msg))
             });
         }).on('error', (e) => {
          console.error(`请求${serverUrl}失败: ${e.message}`);
         });
        // console.log(msg);
-    }else if (msg.nts != ALIVE && serverMap[key] != null){
+    }else if (msg.type == 'nt' && msg.nts != ALIVE && serverMap[key] != null){
         delete serverMap[key];
     }
  }
