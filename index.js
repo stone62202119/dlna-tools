@@ -18,7 +18,7 @@ rl.on('line',(line)=>{
     var cmd,
         cmdTofn = {
             'play':playTest,
-            'deviceList':deviceList,
+            'list':deviceList,
             'menu':showMenu,
             'save':saveDevice
         },
@@ -39,15 +39,17 @@ function playTest(line){
     var number = + line.split(' ')[1],
         deviceList = getDevices(),
         keys = Object.keys(deviceList),
+        ext,
         controlURL,
         node;
 
     if(number != null && number < keys.length){
         node = deviceList[keys[number]];
         controlURL = getCtrolUrl(node);
+        ext = controlURL.indexOf('/') == 0 ? '' : '/';
         if(controlURL){
             console.log('发送播放请求：');
-            play([node.baseUrl,controlURL].join(''));
+            play([node.baseUrl,controlURL].join(ext));
         }else{
             console.log('该节点不支持播放');
         }
@@ -86,6 +88,7 @@ function deviceList(){
     for(;i<l;i++){
         node = deviceList[keys[i]];
         console.log('number:' + i +' ' + node.device.friendlyName);
+        console.log(node.location);
         servicelist = node.device.serviceList.service;
         servicelist.map((service)=>{
             console.log(service.serviceType);
@@ -111,8 +114,9 @@ function play(contrlUrl){
         //xml = getStop('http://'+mp3Url,action),
         pic = 'http://pic2.nipic.com/20090506/2256386_141149004_2.jpg',
         xml = getXML('http://'+mp3Url,action),
-        req;   
+        req; 
 
+   console.log(contrlUrl);
    req = http.request(contrlUrl,{
        method:'POST',
        timeout:30000,
