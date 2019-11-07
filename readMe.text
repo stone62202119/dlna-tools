@@ -1,0 +1,1 @@
+netstat -aon|findstr "62988" 查端口占用

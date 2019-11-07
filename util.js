@@ -8,7 +8,15 @@ exports.getIP = function(){
       if(node.family == 'IPv4')return node.address;
    }
 }
-exports.getXML = function(CurrentURI,action){
+exports.getCurrentUrlXml = (CurrentURI,action)=>{
+   var params = {
+     'InstanceID':0,
+     'CurrentURI':CurrentURI,
+     CurrentURIMetaData:''
+   }
+   return this.getXml(action,params);
+}
+exports.getXml = function getXml(action,params){
     var xml = `<?xml version="1.0" encoding="utf-8"?>
     <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
       <s:Body>
@@ -76,4 +84,11 @@ function strToMsg(str){
        map[key] = value;
     }
     return map;
+  }
+exports.getPlayXML = function(action){
+  var params = {
+    InstanceID:0,
+    Speed:1
+  }
+  return this.getXml(action,params);
 }

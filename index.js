@@ -8,7 +8,7 @@ const {start,stop,getDevices} = require('./search'),
         output:process.stdout
       }),
       http = require('http'),
-      {getXML}=require('./util');
+      {getXML,getPlayXML}=require('./util');
 
 
 mp3server.start();
@@ -45,6 +45,7 @@ function playTest(line){
 
     if(number != null && number < keys.length){
         node = deviceList[keys[number]];
+        ext = node.baseUrl[node.baseUrl.length] == '/' ? '' : '/',
         controlURL = getCtrolUrl(node);
         ext = controlURL.indexOf('/') == 0 ? '' : '/';
         if(controlURL){
@@ -71,8 +72,8 @@ function playTest(line){
 }
 function showMenu(){
     var cmdList = [
-        'play  播放mp3',
-        'deviceList 列出设备信息'
+        'play 1 //给第一个设备播放mp3',
+        'list 列出设备信息'
     ].join('\r\n');
     console.log(cmdList);
 }
@@ -87,8 +88,7 @@ function deviceList(){
     
     for(;i<l;i++){
         node = deviceList[keys[i]];
-        console.log('number:' + i +' ' + node.device.friendlyName);
-        console.log(node.location);
+        console.log('number:' + i +' ' + node.device.friendlyName +'\nloaction'+ node.location);
         servicelist = node.device.serviceList.service;
         servicelist.map((service)=>{
             console.log(service.serviceType);
@@ -113,51 +113,58 @@ function play(contrlUrl){
         mp3Url = mp3server.getUrl(),
         //xml = getStop('http://'+mp3Url,action),
         pic = 'http://pic2.nipic.com/20090506/2256386_141149004_2.jpg',
-        xml = getXML('http://'+mp3Url,action),
-        req; 
-
-   console.log(contrlUrl);
-   req = http.request(contrlUrl,{
-       method:'POST',
-       timeout:30000,
-       headers: {
-       // 'SOAPACTION': "urn:schemas-upnp-org:service:AVTransport:1#SetAVTransportURI",
-        'SOAPACTION': '"urn:schemas-upnp-org:service:AVTransport:1#' + action + '"',
-        'Content-Type': 'text/xml;charset="utf-8"',
-        'Content-Length': Buffer.byteLength(xml)
-       }
-   },(res)=>{
-    const { statusCode } = res;
-    const contentType = res.headers['content-type'];
-
-    let error;
-    if (statusCode == 200){
-        console.log('start play!');
-    }else if (statusCode !== 200) {
-        error = new Error('Request Failed.\n' +
-                        `Status Code: ${statusCode}`);
-    }else if (!/^text\/xml/.test(contentType)) {
-        error = new Error('Invalid content-type.\n' +
-                        `Expected application/json but received ${contentType}`);
-    }
-    if (error) {
-        console.error(error.message);
-        res.setEncoding('utf8');
-        let rawData = '';
-        res.on('data', (chunk) => { rawData += chunk; });
-        res.on('end', () => {
-            try {
-            console.log(rawData);
-            } catch (e) {
-            console.error(e.message);
-            }
-        });
-    }
+        xml = getXML('http://'+mp3Url,action);
         
-   });
-   req.on('error',function(e){
-    console.error(`problem with request: ${e.message}`);
-   })
-   req.write(xml);
-   req.end();
+        
+    sendXML(contrlUrl,action,xml);//SetAVTransportURI
+    action = 'Play';
+    xml = getPlayXML(action);
+    sendXML(contrlUrl,action,xml);
+}
+function sendXML(contrlUrl,action,xml){
+    var req;
+        
+    req = http.request(contrlUrl,{
+        method:'POST',
+        timeout:30000,
+        headers: {
+        // 'SOAPACTION': "urn:schemas-upnp-org:service:AVTransport:1#SetAVTransportURI",
+         'SOAPACTION': '"urn:schemas-upnp-org:service:AVTransport:1#' + action + '"',
+         'Content-Type': 'text/xml;charset="utf-8"',
+         'Content-Length': Buffer.byteLength(xml)
+        }
+    },(res)=>{
+     const { statusCode } = res;
+     const contentType = res.headers['content-type'];
+ 
+     let error;
+     if (statusCode == 200){
+         console.log('start play!');
+     }else if (statusCode !== 200) {
+         error = new Error('Request Failed.\n' +
+                         `Status Code: ${statusCode}`);
+     }else if (!/^text\/xml/.test(contentType)) {
+         error = new Error('Invalid content-type.\n' +
+                         `Expected application/json but received ${contentType}`);
+     }
+     if (error) {
+         console.error(error.message);
+     }
+         res.setEncoding('utf8');
+         let rawData = '';
+         res.on('data', (chunk) => { rawData += chunk; });
+         res.on('end', () => {
+             try {
+             console.log(rawData);
+             } catch (e) {
+             console.error(e.message);
+             }
+         });
+         
+    });
+    req.on('error',function(e){
+     console.error(`problem with request: ${e.message}`);
+    })
+    req.write(xml);
+    req.end();
 }
